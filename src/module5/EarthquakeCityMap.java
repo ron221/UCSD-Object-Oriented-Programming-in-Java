@@ -20,7 +20,7 @@ import processing.core.PApplet;
 /** EarthquakeCityMap
  * An application with an interactive map displaying earthquake data.
  * Author: UC San Diego Intermediate Software Development MOOC team
- * @author Your name here
+ * @HsiaoJungYeh
  * Date: July 17, 2015
  * */
 public class EarthquakeCityMap extends PApplet {
@@ -35,7 +35,7 @@ public class EarthquakeCityMap extends PApplet {
 	private static final long serialVersionUID = 1L;
 
 	// IF YOU ARE WORKING OFFILINE, change the value of this variable to true
-	private static final boolean offline = false;
+	private static final boolean offline = true;
 	
 	/** This is where to find the local tiles, for working without an Internet connection */
 	public static String mbTilesString = "blankLight-1-3.mbtiles";
@@ -133,7 +133,6 @@ public class EarthquakeCityMap extends PApplet {
 		if (lastSelected != null) {
 			lastSelected.setSelected(false);
 			lastSelected = null;
-		
 		}
 		selectMarkerIfHover(quakeMarkers);
 		selectMarkerIfHover(cityMarkers);
@@ -142,10 +141,18 @@ public class EarthquakeCityMap extends PApplet {
 	// If there is a marker under the cursor, and lastSelected is null 
 	// set the lastSelected to be the first marker found under the cursor
 	// Make sure you do not select two markers.
-	// 
+	
 	private void selectMarkerIfHover(List<Marker> markers)
 	{
 		// TODO: Implement this method
+		if (lastSelected == null){
+			for(Marker marker : markers) {
+				if (marker.isInside(map, mouseX, mouseY)) {
+					lastSelected = (CommonMarker) marker;	
+					lastSelected.setSelected(true);
+				}
+			}
+		}
 	}
 	
 	/** The event handler for mouse clicks
@@ -159,8 +166,86 @@ public class EarthquakeCityMap extends PApplet {
 		// TODO: Implement this method
 		// Hint: You probably want a helper method or two to keep this code
 		// from getting too long/disorganized
+		if (lastClicked == null) {
+			//If any city is selected, set the city as lastClicked.
+			if (checkCitiesForClick() != null) { 
+				setLastClicked(checkCitiesForClick());
+			    for (Marker marker : cityMarkers) {
+			    		if (lastClicked != (CommonMarker) marker){
+			    			marker.setHidden(true);
+			    		}
+		    			hideMaekerIfInsideThreatcircle(lastClicked);
+			    }
+			} else if (checkEarthquakesForClick() != null) {
+				setLastClicked(checkEarthquakesForClick());
+			    for (Marker marker : quakeMarkers) {
+		    			if (lastClicked != (CommonMarker) marker){
+		    				marker.setHidden(true);
+		    			}
+		    			hideMaekerIfInsideThreatcircle(lastClicked);
+			    }
+			}
+		}else {
+			if (lastClicked.isInside(map, mouseX, mouseY)){
+				
+			} else {
+				lastClicked = null;
+				unhideMarkers();
+			}
+		}
+		
 	}
 	
+	private Marker checkCitiesForClick()
+	{
+	    for (Marker marker : cityMarkers) 
+	    {
+	        if (marker.isInside(map, mouseX, mouseY))
+	        {
+	            return marker;
+	        }
+	    }
+	    return null;
+	}
+	
+	private Marker checkEarthquakesForClick()
+	{
+	    for (Marker quake : quakeMarkers) 
+	    {
+	        if (quake.isInside(map, mouseX, mouseY)) {
+	            return quake;
+	        }
+	    }
+	    return null;
+	}
+	
+	private void setLastClicked(Marker m) {
+		lastClicked = (CommonMarker) m;
+	}
+	
+	private void hideMaekerIfInsideThreatcircle(Marker marker) {
+		if (marker instanceof CityMarker) {
+			for (Marker quake:quakeMarkers) {
+				double dist = quake.getDistanceTo(lastClicked.getLocation());
+				double circ = ((EarthquakeMarker) quake).threatCircle();
+				if  (dist<circ) {
+					quake.setHidden(false);
+				} else {
+					quake.setHidden(true);
+				}
+			}
+		} else if (marker instanceof EarthquakeMarker) {
+			for (Marker city: cityMarkers) {
+				double dist = marker.getDistanceTo(city.getLocation());
+				double circ = ((EarthquakeMarker) marker).threatCircle();
+				if  (dist<circ) {
+					city.setHidden(false);
+				} else {
+					city.setHidden(true);
+				}
+			}
+		}
+	}
 	
 	// loop over and unhide all markers
 	private void unhideMarkers() {
@@ -172,6 +257,7 @@ public class EarthquakeCityMap extends PApplet {
 			marker.setHidden(false);
 		}
 	}
+	
 	
 	// helper method to draw key in GUI
 	private void addKey() {	
